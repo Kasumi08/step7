@@ -22,6 +22,7 @@ return new class extends Migration
             $table->text('comment')->nullable();		
             $table->string('img_path')->nullable();		
             $table->timestamps();
+            
             $table->foreign('company_id')->references('id')->on('companies');
         });
     }
