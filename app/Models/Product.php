@@ -21,11 +21,11 @@ class Product extends Model
 
     public function sales()
     {
-        return $this -> hasMany(sales::class);
+        return $this -> hasMany(Sale::class);
     }
 
-    public function companies()
+    public function company()
     {
-        return $this -> belongsTo(companies::class);
+        return $this -> belongsTo(Company::class);
     }
 }
