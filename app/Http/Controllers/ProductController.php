@@ -5,122 +5,99 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Models\Company;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
 
 class ProductController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function index()
+    public function index(Request $request)
     {
-        $products = Product::all();
-        return view('products.index', compact('products'));
+        $query = Product::query();
+
+        if ($request->filled('search')) {
+            $query->where('product_name', 'like', '%' . $request->search . '%');
+        }
+
+        if ($request->filled('company_id')) {
+            $query->where('company_id', $request->company_id);
+        }
+
+        $products = $query->with('company')->get();
+        $companies = Company::all();
+
+        return view('products.index', compact('products', 'companies'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
     public function create()
     {
         $companies = Company::all();
         return view('products.create', compact('companies'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
     public function store(Request $request)
     {
-        $request->validate([
-            'id' => 'required', //requiredは必須という意味です
-            'company_id' => 'required',
-            'product_name' => 'required',
-            'price' => 'required',
-            'stock' => 'required',
-            'comment' => 'nullable', //'nullable'はそのフィールドが未入力でもOKという意味です
-            'img_path' => 'nullable|image|max:2048',
-        ]);
+        try {
+            $request->validate([
+                'company_id' => 'required|exists:companies,id',
+                'product_name' => 'required|string|max:255',
+                'price' => 'required|numeric',
+                'stock' => 'required|integer',
+                'comment' => 'nullable|string|max:1000',
+                'img_path' => 'nullable|image|max:2048',
+            ]);
 
-        $product = new Product([
-            'id' => $request->get('id'),
-            'company_id' => $request->get('company_id'),
-            'product_name' => $request->get('product_name'),
-            'price' => $request->get('price'),
-            'stock' => $request->get('stock'),
-            'comment' => $request->get('comment'),
-        ]);
+            $product = new Product([
+                'company_id' => $request->get('company_id'),
+                'product_name' => $request->get('product_name'),
+                'price' => $request->get('price'),
+                'stock' => $request->get('stock'),
+                'comment' => $request->get('comment'),
+            ]);
 
-        if($request->hasFile('img_path')){ 
-            $filename = $request->img_path->getClientOriginalName();
-            $filePath = $request->img_path->storeAs('products', $filename, 'public');
-            $product->img_path = '/storage/' . $filePath;
+            if ($request->hasFile('img_path')) {
+                $filename = $request->img_path->getClientOriginalName();
+                $filePath = $request->img_path->storeAs('products', $filename, 'public');
+                $product->img_path = $filePath;
+            }
+
+            $product->save();
+            return redirect('products')->with('success', '商品が登録されました');
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
         }
-
-        $product->save();
-        return redirect('products');
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
     public function show(Product $product)
     {
         return view('products.show', ['product' => $product]);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
     public function edit(Product $product)
     {
         $companies = Company::all();
         return view('products.edit', compact('product', 'companies'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
     public function update(Request $request, Product $product)
     {
         $request->validate([
-            'product_name' => 'required',
-            'price' => 'required',
-            'stock' => 'required',
+            'product_name' => 'required|string|max:255',
+            'company_id' => 'required|exists:companies,id',
+            'price' => 'required|numeric|min:0',
+            'stock' => 'required|integer|min:0',
+            'comment' => 'nullable|string',
+            'img' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
-        $product->product_name = $request->product_name;
-        $product->price = $request->price;
-        $product->stock = $request->stock;
+        if ($request->hasFile('img')) {
+            $imagePath = $request->file('img')->store('products', 'public');
+            $product->img_path = $imagePath;
+        }
 
-        $product->save();
+        $product->update($request->only(['product_name', 'company_id', 'price', 'stock', 'comment']));
 
-        return redirect()->route('products.index')
-            ->with('success', 'Product updated successfully');
+        return redirect()->route('products.show', $product->id)->with('success', '商品情報を更新しました！');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
     public function destroy(Product $product)
     {
         $product->delete();
