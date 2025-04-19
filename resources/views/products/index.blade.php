@@ -57,7 +57,7 @@
                     <td>{{ $product->company->company_name }}</td>
                     <td class="text-end">
                         <a href="{{ route('products.show', $product) }}" class="btn btn-info btn-sm mx-1">詳細</a>
-                        <form method="POST" action="{{ route('products.destroy', $product) }}" class="d-inline">
+                        <form method="POST" action="{{ route('products.destroy', $product) }}" class="d-inline" onsubmit="return confirm('本当に削除しますか？');">
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="btn btn-danger btn-sm mx-1">削除</button>

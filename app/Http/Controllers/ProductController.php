@@ -5,7 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Models\Company;
 use Illuminate\Http\Request;
-use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreProductRequest;
+use App\Http\Requests\UpdateProductRequest;
 
 class ProductController extends Controller
 {
@@ -33,24 +34,15 @@ class ProductController extends Controller
         return view('products.create', compact('companies'));
     }
 
-    public function store(Request $request)
+    public function store(StoreProductRequest $request)
     {
         try {
-            $request->validate([
-                'company_id' => 'required|exists:companies,id',
-                'product_name' => 'required|string|max:255',
-                'price' => 'required|numeric',
-                'stock' => 'required|integer',
-                'comment' => 'nullable|string|max:1000',
-                'img_path' => 'nullable|image|max:2048',
-            ]);
-
             $product = new Product([
-                'company_id' => $request->get('company_id'),
-                'product_name' => $request->get('product_name'),
-                'price' => $request->get('price'),
-                'stock' => $request->get('stock'),
-                'comment' => $request->get('comment'),
+                'company_id'   => $request->company_id,
+                'product_name' => $request->product_name,
+                'price'        => $request->price,
+                'stock'        => $request->stock,
+                'comment'      => $request->comment,
             ]);
 
             if ($request->hasFile('img_path')) {
@@ -77,23 +69,16 @@ class ProductController extends Controller
         return view('products.edit', compact('product', 'companies'));
     }
 
-    public function update(Request $request, Product $product)
+    public function update(UpdateProductRequest $request, Product $product)
     {
-        $request->validate([
-            'product_name' => 'required|string|max:255',
-            'company_id' => 'required|exists:companies,id',
-            'price' => 'required|numeric|min:0',
-            'stock' => 'required|integer|min:0',
-            'comment' => 'nullable|string',
-            'img' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
-
         if ($request->hasFile('img')) {
             $imagePath = $request->file('img')->store('products', 'public');
             $product->img_path = $imagePath;
         }
 
-        $product->update($request->only(['product_name', 'company_id', 'price', 'stock', 'comment']));
+        $product->update($request->only([
+            'product_name', 'company_id', 'price', 'stock', 'comment'
+        ]));
 
         return redirect()->route('products.show', $product->id)->with('success', '商品情報を更新しました！');
     }
