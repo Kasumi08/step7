@@ -5,8 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Models\Company;
 use Illuminate\Http\Request;
-use App\Http\Requests\StoreProductRequest;
-use App\Http\Requests\UpdateProductRequest;
+use App\Http\Requests\ProductRequest;
 
 class ProductController extends Controller
 {
@@ -34,7 +33,7 @@ class ProductController extends Controller
         return view('products.create', compact('companies'));
     }
 
-    public function store(StoreProductRequest $request)
+    public function store(ProductRequest $request)
     {
         try {
             $product = new Product([
@@ -69,18 +68,22 @@ class ProductController extends Controller
         return view('products.edit', compact('product', 'companies'));
     }
 
-    public function update(UpdateProductRequest $request, Product $product)
+    public function update(ProductRequest $request, Product $product)
     {
-        if ($request->hasFile('img')) {
-            $imagePath = $request->file('img')->store('products', 'public');
-            $product->img_path = $imagePath;
+        try {
+            if ($request->hasFile('img_path')) {
+                $imagePath = $request->file('img_path')->store('products', 'public');
+                $product->img_path = $imagePath;
+            }
+
+            $product->update($request->only([
+                'product_name', 'company_id', 'price', 'stock', 'comment'
+            ]));
+
+            return redirect()->route('products.show', $product->id)->with('success', '商品情報を更新しました！');
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
         }
-
-        $product->update($request->only([
-            'product_name', 'company_id', 'price', 'stock', 'comment'
-        ]));
-
-        return redirect()->route('products.show', $product->id)->with('success', '商品情報を更新しました！');
     }
 
     public function destroy(Product $product)

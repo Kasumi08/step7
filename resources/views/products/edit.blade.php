@@ -47,7 +47,7 @@
 
         <div class="mb-3">
             <label class="form-label">商品画像</label>
-            <input type="file" name="img" class="form-control">
+            <input type="file" name="img_path" class="form-control">
             @if($product->img_path)
                 <div class="mt-2">
                     <img src="{{ asset('storage/' . $product->img_path) }}" alt="商品画像" style="max-width: 200px;">
